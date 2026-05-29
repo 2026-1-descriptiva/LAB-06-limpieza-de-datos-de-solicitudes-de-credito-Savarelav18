@@ -2,6 +2,9 @@
 Escriba el codigo que ejecute la accion solicitada en la pregunta.
 """
 
+import pandas as pd
+import os
+
 
 def pregunta_01():
     """
