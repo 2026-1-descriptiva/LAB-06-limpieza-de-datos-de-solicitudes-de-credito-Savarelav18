@@ -13,59 +13,40 @@ def pregunta_01():
     El archivo limpio debe escribirse en "files/output/solicitudes_de_credito.csv"
 
     """
-    import os
-    import numpy as np
-    import pandas as pd
+    ruta_archivo = 'files/input/solicitudes_de_credito.csv'
+    df = pd.read_csv(ruta_archivo, sep=';')
 
-    def load_data():
-        dataframe = pd.read_csv("./files/input/solicitudes_de_credito.csv", sep=";")
-        return dataframe
+    # Limpiar el DataFrame
+    df.drop(['Unnamed: 0'], axis=1, inplace=True)  
+    df.dropna(inplace=True)  # Eliminar filas con valores nulos.
+    df.drop_duplicates(inplace=True)  # Eliminar filas duplicadas.
 
-    def clean_data(dataframe):
-        dataframe = dataframe.copy()
-        dataframe.dropna(inplace=True)
+    # Corregir la columna 'fecha_de_beneficio'
+    df[['día', 'mes', 'año']] = df['fecha_de_beneficio'].str.split('/', expand=True)  # Dividir 'fecha_de_beneficio' en tres columnas.
+    df.loc[df['año'].str.len() < 4, ['día', 'año']] = df.loc[df['año'].str.len() < 4, ['año', 'día']].values  # Reordenar si el año tiene menos de 4 dígitos.
+    df['fecha_de_beneficio'] = df['año'] + '-' + df['mes'] + '-' + df['día']  # Reconstruir la fecha en formato 'YYYY-MM-DD'.
+    df.drop(['día', 'mes', 'año'], axis=1, inplace=True)  # Eliminar las columnas auxiliares.
 
-        dataframe = dataframe.drop(columns=["Unnamed: 0"])
-        
-        dataframe["sexo"] = dataframe["sexo"].str.lower()        
-        dataframe["tipo_de_emprendimiento"] = dataframe["tipo_de_emprendimiento"].str.lower()
-        dataframe["tipo_de_emprendimiento"] = dataframe["tipo_de_emprendimiento"].str.strip()
-        dataframe["idea_negocio"] = dataframe["idea_negocio"].str.lower()
-        dataframe["idea_negocio"] = dataframe["idea_negocio"].str.replace("_", " ")
-        dataframe["idea_negocio"] = dataframe["idea_negocio"].str.replace("-", " ")
-        dataframe["idea_negocio"] = dataframe["idea_negocio"].str.strip()
-        dataframe["barrio"] = dataframe["barrio"].str.lower()
-        dataframe["barrio"] = dataframe["barrio"].str.replace("-", " ")
-        dataframe["barrio"] = dataframe["barrio"].str.replace("_", " ")
-        dataframe["comuna_ciudadano"] = dataframe["comuna_ciudadano"].astype(int)
-        dataframe["fecha_de_beneficio"] = pd.to_datetime(dataframe["fecha_de_beneficio"], dayfirst=True, errors='coerce', format='mixed')
-        dataframe["monto_del_credito"] = dataframe["monto_del_credito"].str.strip()
-        dataframe["monto_del_credito"] = dataframe["monto_del_credito"].str.replace(".00", "")
-        dataframe["monto_del_credito"] = dataframe["monto_del_credito"].str.replace(",", "")
-        dataframe["monto_del_credito"] = dataframe["monto_del_credito"].str.replace("$ ", "")
-        dataframe["línea_credito"] = dataframe["línea_credito"].str.lower()
-        dataframe["línea_credito"] = dataframe["línea_credito"].str.replace("_", " ")
-        dataframe["línea_credito"] = dataframe["línea_credito"].str.replace("-", " ")
+     # Limpiar las columnas de texto
+    columnas_objeto = ['sexo', 'tipo_de_emprendimiento', 'idea_negocio', 'línea_credito']  # Columnas de texto que necesitan limpieza.
+    df[columnas_objeto] = df[columnas_objeto].apply(lambda x: x.str.lower().replace(['-', '_'], ' ', regex=True).str.strip())  # Convertir a minúsculas, reemplazar caracteres y quitar espacios extra.
+    df['barrio'] = df['barrio'].str.lower().replace(['-', '_'], ' ', regex=True)  # Limpiar la columna 'barrio'.
 
-        dataframe.drop_duplicates(inplace=True)
+    # Limpiar la columna 'monto_del_credito'
+    df['monto_del_credito'] = df['monto_del_credito'].str.replace("[$, ]", "", regex=True).str.strip()  # Eliminar caracteres no numéricos.
+    df['monto_del_credito'] = pd.to_numeric(df['monto_del_credito'], errors='coerce')  # Convertir a tipo numérico, manejando errores como NaN.
+    df['monto_del_credito'] = df['monto_del_credito'].fillna(0).astype(int)  # Rellenar NaN con 0 y convertir a entero.
+    df['monto_del_credito'] = df['monto_del_credito'].astype(str).str.replace('.00', '')  # Convertir nuevamente a texto y eliminar '.00'.
 
-        return dataframe
-    
-    def save_data(dataframe):
-        if not os.path.exists("./files/output"):
-            os.makedirs("./files/output")
-    
-        dataframe.to_csv(
-        "./files/output/solicitudes_de_credito.csv",
-        sep=";",
-    )
-    
-    def main():
-        dataframe = load_data()
-        dataframe  = clean_data(dataframe)
-        save_data(dataframe)
+    # Eliminar duplicados después de las transformaciones.
+    df.drop_duplicates(inplace=True)
 
-    return main()
+    # Crear el directorio de salida si no existe
+    directorio_salida = 'files/output'  # Directorio donde se guardará el archivo limpio.
+    os.makedirs(directorio_salida, exist_ok=True)  # Crear la carpeta si no existe.
 
-if __name__ == '__main__':
-    pregunta_01()
+    # Guardar los datos limpios en un nuevo archivo CSV
+    ruta_salida = f'{directorio_salida}/solicitudes_de_credito.csv'
+    df.to_csv(ruta_salida, sep=';', index=False)  # Guardar el DataFrame limpio en formato CSV.
+
+    return df.head()
