@@ -13,7 +13,6 @@ def pregunta_01():
     El archivo limpio debe escribirse en "files/output/solicitudes_de_credito.csv"
 
     """
-
     import os
     import numpy as np
     import pandas as pd
