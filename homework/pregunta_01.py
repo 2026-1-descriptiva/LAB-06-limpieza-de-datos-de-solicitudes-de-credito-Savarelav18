@@ -67,3 +67,6 @@ def pregunta_01():
         save_data(dataframe)
 
     return main()
+
+if __name__ == '__main__':
+    pregunta_01()
